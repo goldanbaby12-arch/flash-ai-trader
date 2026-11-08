@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Flash AI Trader</title>
+<style>
+:root{color-scheme:dark;font-family:Inter,system-ui,Arial}*{box-sizing:border-box}
+body{margin:0;background:#0b1020;color:#e8edf8}.wrap{max-width:1050px;margin:auto;padding:22px}
+header{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+h1{font-size:25px;margin:0}.muted{color:#91a0b8}.panel{background:#131c30;border:1px solid #26334d;border-radius:16px;padding:18px;margin-top:18px}
+.controls{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}
+select,button{background:#202c43;color:#fff;border:1px solid #34445f;padding:12px;border-radius:10px;font-size:15px}
+button{background:#2563eb;border:0;font-weight:700;cursor:pointer}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-top:16px}
+.metric{background:#0d1628;border-radius:12px;padding:14px}.metric small{display:block;color:#91a0b8;margin-bottom:8px}
+.value{font-size:20px;font-weight:700;overflow-wrap:anywhere}.signal{font-size:28px;font-weight:800}
+.green{color:#34d399}.red{color:#fb7185}.yellow{color:#fbbf24}
+ul{padding-left:20px;color:#c6d1e3}footer{margin:22px 0;color:#8290a8;font-size:12px;line-height:1.5}
+</style></head>
+<body><main class="wrap">
+<header><div><h1>⚡ FLASH AI TRADER</h1><div class="muted">Crypto market analysis dashboard</div></div><div id="status" class="muted">Ready</div></header>
+<section class="panel">
+<strong>Market scanner</strong>
+<div class="controls">
+<select id="symbol"><option>BTCUSDT</option><option>ETHUSDT</option><option>SOLUSDT</option><option>BNBUSDT</option><option>XRPUSDT</option><option>DOGEUSDT</option><option>ADAUSDT</option><option>AVAXUSDT</option></select>
+<select id="interval"><option value="15m">15 minutes</option><option value="1h" selected>1 hour</option><option value="4h">4 hours</option><option value="1d">1 day</option></select>
+<button onclick="loadSignal()">Analyze market</button></div>
+<div class="grid">
+<div class="metric"><small>Signal</small><div id="signal" class="signal">—</div></div>
+<div class="metric"><small>Last price (USDT)</small><div id="price" class="value">—</div></div>
+<div class="metric"><small>Entry</small><div id="entry" class="value">—</div></div>
+<div class="metric"><small>Stop loss</small><div id="sl" class="value">—</div></div>
+<div class="metric"><small>Take profit 1</small><div id="tp1" class="value">—</div></div>
+<div class="metric"><small>Take profit 2</small><div id="tp2" class="value">—</div></div>
+</div></section>
+<section class="panel"><strong>Indicator readings</strong><div class="grid">
+<div class="metric"><small>RSI 14</small><div id="rsi" class="value">—</div></div>
+<div class="metric"><small>EMA 20</small><div id="ema20" class="value">—</div></div>
+<div class="metric"><small>EMA 50</small><div id="ema50" class="value">—</div></div>
+<div class="metric"><small>Estimated stop distance</small><div id="risk" class="value">—</div></div>
+</div></section>
+<section class="panel"><strong>Why this signal?</strong><ul id="reasons"><li>Choose a pair and analyze.</li></ul></section>
+<footer>Analysis-only prototype. It does not place orders or connect to a trading account. Signals are educational, can be wrong, and do not guarantee returns. Test strategies with historical data and paper trading before considering live trading.</footer>
+</main>
+<script>
+const fmt=v=>v===null||v===undefined?"—":Number(v).toLocaleString(undefined,{maximumFractionDigits:6});
+async function loadSignal(){
+ const status=document.getElementById("status");status.textContent="Fetching Binance candles…";
+ try{
+  const s=document.getElementById("symbol").value,i=document.getElementById("interval").value;
+  const r=await fetch(`/api/signal?symbol=${s}&interval=${i}`);const d=await r.json();
+  if(!r.ok)throw new Error(d.detail||"Request failed");
+  const el=document.getElementById("signal");el.textContent=d.signal;
+  el.className="signal "+(d.signal==="LONG"?"green":d.signal==="SHORT"?"red":"yellow");
+  for(const [id,key] of [["price","price"],["entry","entry"],["sl","stop_loss"],["tp1","take_profit_1"],["tp2","take_profit_2"]])document.getElementById(id).textContent=fmt(d[key]);
+  document.getElementById("rsi").textContent=fmt(d.indicators.rsi14);
+  document.getElementById("ema20").textContent=fmt(d.indicators.ema20);
+  document.getElementById("ema50").textContent=fmt(d.indicators.ema50);
+  document.getElementById("risk").textContent=d.estimated_risk_percent===null?"—":d.estimated_risk_percent+"%";
+  document.getElementById("reasons").innerHTML=d.reasons.map(x=>`<li>${x}</li>`).join("");
+  status.textContent=`Updated • ${d.symbol} • ${d.interval}`;
+ }catch(e){status.textContent="Error: "+e.message}
+}
+loadSignal();
+</script></body></html>
